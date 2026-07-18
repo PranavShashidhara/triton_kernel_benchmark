@@ -1,10 +1,10 @@
-"""Week 7 centerpiece: systematic autotuner sweep.
+"""Systematic autotuner sweep.
 
-Enumerates the FULL config space (num_stages x num_warps x block shapes)
-across matrix sizes 512-4096, timing every config explicitly — not just the
-autotuner's winner. Output is the (size x config -> TFLOPS) performance
-surface, plus a comparison of the autotuner's chosen config against a
-hand-tuned reference (your Week 5 CUDA pipeline depth) at each size.
+Enumerates the full config space (num_stages x num_warps x block shapes)
+across matrix sizes 512-4096, timing every config explicitly. Produces
+the (size x config -> TFLOPS) performance surface and compares the
+autotuner's chosen config against a hand-tuned CUDA pipeline depth
+reference at each size.
 
 Run:  python -m analysis.autotuner_sweep
 Writes results/data/sweep.csv and results/data/autotuner_choices.csv
@@ -21,13 +21,12 @@ from bench.utils import bench, device_report, gemm_tflops
 
 SIZES = [512, 1024, 2048, 4096]
 
-# The sweep axes from the roadmap: stages 2-5, warps 2/4/8
+# Sweep axes: stages 2-5, warps 2/4/8
 STAGES = [2, 3, 4, 5]
 WARPS = [2, 4, 8]
 BLOCKS = [(64, 64, 32), (128, 128, 32)]
 
-# Your Week 5 hand-tuned CUDA pipeline depth per size — EDIT after Week 5 lands.
-# Used only for the written comparison, not for any timing.
+# Hand-tuned CUDA pipeline depth per size (for comparison only, not timing).
 HAND_TUNED_STAGES = {512: 3, 1024: 3, 2048: 3, 4096: 4}
 
 SWEEP_CSV = "results/data/sweep.csv"
@@ -81,10 +80,10 @@ def record_autotuner_choices():
             "chosen_block_k": best.kwargs["BLOCK_K"],
             "chosen_num_warps": best.num_warps,
             "chosen_num_stages": chosen_stages,
-            "hand_tuned_stages_week5": hand,
+            "hand_tuned_stages": hand,
             "stages_match": chosen_stages == hand,
         })
-        print(f"N={n}: autotuner chose {best} | hand-tuned stages (Week 5): {hand}")
+        print(f"N={n}: autotuner chose {best} | hand-tuned stages: {hand}")
     return choices
 
 

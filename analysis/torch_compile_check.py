@@ -1,4 +1,4 @@
-"""Week 8 (part 2): torch.compile integration.
+"""torch.compile integration.
 
 Registers the Triton kernels as PyTorch custom ops, checks for graph breaks
 under torch.compile, and benchmarks against Inductor's max-autotune output.

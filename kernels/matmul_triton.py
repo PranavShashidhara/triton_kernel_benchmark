@@ -1,10 +1,9 @@
 """Triton GEMM with autotuning.
 
-Week 6 deliverable: port of the hand-tuned CUDA WMMA GEMM to Triton.
-The autotune config space deliberately spans the same pipeline depths
-(num_stages 2-5) swept by hand in the Week 5 CUDA multistage kernel,
-so the Week 7 analysis can compare the autotuner's chosen depth against
-the hand-tuned choice at each matrix size.
+Port of the hand-tuned CUDA WMMA GEMM to Triton. The autotune config
+space spans pipeline depths (num_stages 2-5) matching the CUDA multistage
+kernel, enabling direct comparison of autotuner-chosen vs hand-tuned
+pipeline depth at each matrix size.
 """
 
 import torch
@@ -15,7 +14,7 @@ import triton.language as tl
 def get_autotune_configs():
     """Config space: block shapes x warps x stages.
 
-    Kept as a function so the Week 7 sweep can import and enumerate the
+    Exposed as a function so the sweep can import and enumerate the
     same space explicitly (bypassing the autotuner) to build the full
     performance surface.
     """
@@ -96,7 +95,7 @@ def matmul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 
 # Non-autotuned variant: same kernel body, config passed explicitly.
-# Used by the Week 7 sweep to measure EVERY config, not just the winner.
+# Used by the sweep to measure every config, not just the winner.
 @triton.jit
 def matmul_kernel_fixed(
     a_ptr, b_ptr, c_ptr,

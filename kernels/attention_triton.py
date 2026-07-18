@@ -1,13 +1,11 @@
 """Triton fused attention with online softmax.
 
-Week 6 deliverable: port of the Week 3-4 CUDA fused attention kernel.
-Same algorithm (single-pass online softmax, fp16 compute / fp32 accumulate,
-optional causal masking) so the CUDA-vs-Triton comparison is algorithm-
-for-algorithm, not just "two attention implementations."
+Port of the CUDA fused attention kernel. Uses the same algorithm
+(single-pass online softmax, fp16 compute / fp32 accumulate, optional
+causal masking) for a direct algorithm-level CUDA-vs-Triton comparison.
 
-Reference for comparison: triton-lang/triton tutorials/06-fused-attention.py
-(this is a from-scratch port of *your* kernel, kept intentionally close to
-your CUDA structure rather than to the tutorial).
+Written from scratch to mirror the CUDA kernel structure rather than
+the triton-lang tutorial (06-fused-attention.py).
 """
 
 import torch
@@ -52,14 +50,13 @@ def fused_attention_kernel(
     q_ptrs = q_ptr + offs_m[:, None] * stride_qm + offs_d[None, :] * stride_qd
     q = tl.load(q_ptrs, mask=offs_m[:, None] < SEQ_LEN, other=0.0)
 
-    # Online softmax state — mirrors the CUDA kernel's per-row (m_i, l_i, acc)
+    # Online softmax state: per-row running max, sum, and accumulator
     m_i = tl.full((BLOCK_M,), float("-inf"), dtype=tl.float32)
     l_i = tl.zeros((BLOCK_M,), dtype=tl.float32)
     acc = tl.zeros((BLOCK_M, HEAD_DIM), dtype=tl.float32)
 
     # Causal: query tile pid_m only attends to K/V tiles up to its own position.
-    # Fully-masked tiles are skipped entirely by bounding the loop — this is the
-    # same "skip fully-masked tiles" optimization from the Week 4 CUDA kernel.
+    # Fully-masked tiles are skipped by bounding the loop.
     if IS_CAUSAL:
         hi = (pid_m + 1) * BLOCK_M
     else:
@@ -96,7 +93,7 @@ def fused_attention_kernel(
 
 def fused_attention(q, k, v, causal: bool = False) -> torch.Tensor:
     """Shapes: (batch, heads, seq, head_dim), fp16. Returns same shape, fp16."""
-    assert q.dtype == torch.float16, "fp16 in / fp32 accumulate, matching the CUDA kernel"
+    assert q.dtype == torch.float16, "fp16 input required (fp32 accumulate internally)"
     batch, heads, seq_len, head_dim = q.shape
     assert head_dim in (64, 128), "benchmark grid covers head dims 64 and 128"
     o = torch.empty_like(q)

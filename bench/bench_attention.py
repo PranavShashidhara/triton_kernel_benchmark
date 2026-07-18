@@ -1,7 +1,7 @@
-"""Week 6 benchmark: Triton fused attention vs PyTorch SDPA vs naive.
+"""Benchmark: Triton fused attention vs PyTorch SDPA vs naive.
 
-Same grid as the Project 1 CUDA attention benchmarks (seq 512-8K, head dims
-64/128) so the CUDA-vs-Triton comparison lands on identical shapes.
+Covers seq lengths 512-8K and head dims 64/128, matching the CUDA
+attention benchmark grid for direct comparison.
 
 Run:  python -m bench.bench_attention
 Writes results/data/attention_bench.csv
@@ -24,7 +24,7 @@ OUT_CSV = "results/data/attention_bench.csv"
 
 
 def naive_attention(q, k, v, causal=False):
-    """Materializes the full S matrix — the O(N^2)-memory baseline that OOMs at long seq."""
+    """O(N^2)-memory baseline that materializes the full attention matrix."""
     scale = q.shape[-1] ** -0.5
     s = (q @ k.transpose(-2, -1)) * scale
     if causal:

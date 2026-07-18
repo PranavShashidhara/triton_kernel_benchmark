@@ -1,4 +1,4 @@
-"""Charts for the Week 7 mini-report.
+"""Performance analysis charts.
 
 Run:  python -m analysis.plots
 Reads results/data/*.csv, writes results/charts/*.png
@@ -24,7 +24,6 @@ def _read(path):
 def plot_performance_surface():
     """Heatmap per matrix size: (num_warps x num_stages) -> TFLOPS.
 
-    This is the core Week 7 artifact — the (size x config) performance surface.
     One heatmap per (size, block shape) keeps each panel readable.
     """
     rows = [r for r in _read(f"{DATA}/sweep.csv") if r["tflops"] != "FAIL"]
@@ -71,7 +70,7 @@ def plot_gemm_comparison():
     ax.plot(ns, [float(r["cublas_tflops"]) for r in rows], "o-", label="cuBLAS")
     ax.plot(ns, [float(r["triton_tflops"]) for r in rows], "s-", label="Triton (autotuned)")
     if "cuda_wmma_tflops" in rows[0]:
-        ax.plot(ns, [float(r["cuda_wmma_tflops"]) for r in rows], "^-", label="CUDA WMMA (Project 1)")
+        ax.plot(ns, [float(r["cuda_wmma_tflops"]) for r in rows], "^-", label="CUDA WMMA")
     ax.set_xlabel("Matrix size N (NxN)")
     ax.set_ylabel("TFLOPS")
     ax.set_xscale("log", base=2)

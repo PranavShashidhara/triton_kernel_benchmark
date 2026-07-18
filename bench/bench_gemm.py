@@ -1,4 +1,4 @@
-"""Week 6 benchmark: Triton GEMM vs cuBLAS (vs your CUDA kernels if installed).
+"""Benchmark: Triton GEMM vs cuBLAS (and CUDA WMMA kernels if installed).
 
 Run:  python -m bench.bench_gemm
 Writes results/data/gemm_bench.csv
@@ -17,9 +17,9 @@ OUT_CSV = "results/data/gemm_bench.csv"
 
 
 def try_import_cuda_ext():
-    """Your Project 1 kernels, if the extension is built on this machine."""
+    """Import CUDA WMMA extension if available on this machine."""
     try:
-        import my_kernels  # built via torch.utils.cpp_extension in Project 1
+        import my_kernels  # built via torch.utils.cpp_extension
         return my_kernels
     except ImportError:
         return None
@@ -30,7 +30,7 @@ def main():
     device_report()
     cuda_ext = try_import_cuda_ext()
     if cuda_ext is None:
-        print("\n(Project 1 CUDA extension not found — benchmarking Triton vs cuBLAS only.)\n")
+        print("\n(CUDA extension not found — benchmarking Triton vs cuBLAS only.)\n")
 
     rows = []
     for n in SIZES:

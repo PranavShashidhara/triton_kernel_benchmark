@@ -1,8 +1,7 @@
-"""Shared benchmarking + correctness utilities.
+"""Shared benchmarking and correctness utilities.
 
-Same methodology as the Project 1 CUDA harness so numbers are comparable:
-CUDA-event timing, warmup iterations, median-of-N, and the same error
-metrics (max abs error, mean relative error, cosine similarity).
+Uses CUDA-event timing, warmup iterations, and median-of-N latency.
+Error metrics: max absolute error, mean relative error, cosine similarity.
 """
 
 import torch

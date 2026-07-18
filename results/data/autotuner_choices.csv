@@ -1,0 +1,5 @@
+N,chosen_block_m,chosen_block_n,chosen_block_k,chosen_num_warps,chosen_num_stages,hand_tuned_stages_week5,stages_match
+512,64,64,32,4,5,3,False
+1024,64,64,32,4,4,3,False
+2048,64,128,32,4,4,3,False
+4096,128,128,64,4,3,4,False

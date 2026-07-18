@@ -1,5 +1,4 @@
-"""Week 7: PTX extraction for Triton kernels + helper notes for CUDA side.
-
+"""
 Triton side runs anywhere Triton runs (Colab included).
 CUDA side (nvcc -ptx / cuobjdump --dump-sass) needs the CUDA toolkit — run
 those on the RunPod box where the Project 1 kernels build.
@@ -20,13 +19,36 @@ OUT_DIR = "results/ptx"
 
 
 def _ptx_from_cache(jit_fn) -> str | None:
-    """Pull PTX for the most recently compiled specialization of a @triton.jit fn."""
-    cache = getattr(jit_fn, "cache", None) or {}
+    """Pull PTX for the most recently compiled specialization of a @triton.jit fn.
+
+    Handles both autotuned wrappers and plain JIT functions across Triton
+    versions. Autotuned kernels (@triton.autotune) are Autotuner objects that
+    wrap the real JIT function — the compiled-kernel cache lives on .fn, while
+    the autotuner's own cache holds Config objects (which is why iterating the
+    wrong one raises 'Config' object has no attribute 'items').
+    """
+    # Unwrap the autotuner if present
+    inner = getattr(jit_fn, "fn", None) or jit_fn
+
+    cache = getattr(inner, "cache", None) or {}
     for _device, kernels in cache.items():
+        # Expected layout: {device: {key: CompiledKernel}} — but varies by version
+        if not hasattr(kernels, "items"):
+            continue
         for _key, compiled in kernels.items():
             asm = getattr(compiled, "asm", None)
             if asm and "ptx" in asm:
                 return asm["ptx"]
+
+    # Fallback: some versions keep compiled kernels on the autotuner itself
+    for attr in ("compiled_kernels", "kernel_cache"):
+        store = getattr(jit_fn, attr, None)
+        if isinstance(store, dict):
+            for compiled in store.values():
+                asm = getattr(compiled, "asm", None)
+                if asm and "ptx" in asm:
+                    return asm["ptx"]
+
     return None
 
 
@@ -53,6 +75,17 @@ def dump(name: str, ptx: str):
     print(f"{path}  |  " + "  ".join(f"{k}={v}" for k, v in stats.items()))
 
 
+def _debug_dump_structure(jit_fn, label: str):
+    """Print what this Triton version exposes, to adapt _ptx_from_cache if needed."""
+    print(f"\n--- debug: {label} ---")
+    print(f"type: {type(jit_fn)}")
+    print(f"attrs: {[a for a in dir(jit_fn) if not a.startswith('_')]}")
+    inner = getattr(jit_fn, "fn", None)
+    if inner is not None:
+        print(f"inner type: {type(inner)}")
+        print(f"inner attrs: {[a for a in dir(inner) if not a.startswith('_')]}")
+
+
 def main():
     # Compile at a representative size, then pull PTX from the JIT cache
     n = 2048
@@ -63,7 +96,8 @@ def main():
     if ptx:
         dump(f"matmul_N{n}", ptx)
     else:
-        print("No PTX found for matmul — check Triton version's cache layout")
+        print("No PTX found for matmul — dumping structure to adapt the cache lookup:")
+        _debug_dump_structure(matmul_kernel, "matmul_kernel")
 
     seq, head_dim = 2048, 64
     q, k, v = (torch.randn((1, 8, seq, head_dim), device="cuda", dtype=torch.float16)
@@ -73,7 +107,8 @@ def main():
     if ptx:
         dump(f"attention_seq{seq}", ptx)
     else:
-        print("No PTX found for attention — check Triton version's cache layout")
+        print("No PTX found for attention — dumping structure to adapt the cache lookup:")
+        _debug_dump_structure(fused_attention_kernel, "fused_attention_kernel")
 
     print(
         "\nCUDA-side extraction (run on the RunPod box with the toolkit):\n"
